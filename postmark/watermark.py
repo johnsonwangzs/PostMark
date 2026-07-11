@@ -26,6 +26,7 @@ from .common import (
     stable_word_count,
 )
 from .config import PostMarkConfig
+from .selection_policy import SelectionPolicy
 
 
 TERMINAL_STATUSES = {"completed", "failed"}
@@ -121,19 +122,6 @@ class PostMarkWatermarker:
             raise ConfigurationError("min_group_presence must be in [0, 1]")
         if retry_strategy != "missing_words":
             raise ConfigurationError("Only missing_words retry is supported")
-        for name, value in (
-            ("min_watermark_words", min_watermark_words),
-            ("max_watermark_words", max_watermark_words),
-        ):
-            if value is not None and (isinstance(value, bool) or value < 0):
-                raise ConfigurationError(f"{name} must be a non-negative integer")
-        if (
-            min_watermark_words is not None
-            and max_watermark_words is not None
-            and min_watermark_words > max_watermark_words
-        ):
-            raise ConfigurationError("min_watermark_words exceeds max_watermark_words")
-
         self.prompt_path = Path(prompt_path)
         if not self.prompt_path.is_file():
             raise ConfigurationError(f"Insertion prompt does not exist: {self.prompt_path}")
@@ -154,13 +142,13 @@ class PostMarkWatermarker:
         self.min_watermark_words = min_watermark_words
         self.max_watermark_words = max_watermark_words
         self.seed = seed
-        self.selection_config = {
-            "selector_selection_config_sha256": selector.selection_config_sha256,
-            "selector_selection_config": dict(selector.selection_config),
-            "min_watermark_words": min_watermark_words,
-            "max_watermark_words": max_watermark_words,
-        }
-        self.selection_config_sha256 = sha256_json(self.selection_config)
+        self.selection_policy = SelectionPolicy(
+            selector,
+            min_watermark_words=min_watermark_words,
+            max_watermark_words=max_watermark_words,
+        )
+        self.selection_config = self.selection_policy.config
+        self.selection_config_sha256 = self.selection_policy.sha256
         self.run_config = {
             "version": RUN_MANIFEST_VERSION,
             "selection_config_sha256": self.selection_config_sha256,
@@ -189,12 +177,7 @@ class PostMarkWatermarker:
         return value
 
     def _select_words(self, text: str) -> list[str]:
-        k = self.selector.word_count_to_k(text)
-        if self.min_watermark_words is not None:
-            k = max(k, self.min_watermark_words)
-        if self.max_watermark_words is not None:
-            k = min(k, self.max_watermark_words)
-        return self.selector.select_words(text, top_k=k)
+        return self.selection_policy.select_words(text)
 
     def insert_watermark(self, text: str, *, sample_id: str = "sample") -> dict[str, Any]:
         if not isinstance(text, str) or not text.strip():

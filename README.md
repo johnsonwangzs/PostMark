@@ -7,7 +7,9 @@ are defined in `PostMark_local_reimplementation_plan.md`.
 The current development stage provides deterministic configuration and JSONL,
 resource manifests, canonical candidate-word conversion, a reproducible local
 Nomic anchor table, the official two-stage selector, and local Llama watermark
-insertion with ID-based resume. Portable blind detection is the next stage.
+insertion with ID-based resume. Portable blind detection, independent calibration,
+and paired bootstrap metrics are also available. Quality and failure-rate
+aggregation is the next stage.
 
 ## Local resources
 
@@ -69,9 +71,32 @@ diagnostics, and resource/configuration hashes. Resume is keyed by stable sample
 ID and refuses input, model, prompt, or configuration conflicts. Use
 `--overwrite` only when intentionally starting that output path again.
 
-The first detector profile is portable `exact_lemma`. The official fuzzy detector
-is deferred until its local vector resource is provisioned, and portable results
-must be reported separately from paper-compatible results.
+Portable blind detection supports `exact_lemma` and the explicitly experimental
+`nomic_fuzzy` mode. Both recompute expected words from each candidate using the
+same keyed selector table; neither reads insertion-time `list1/list2`. The official
+Paragram fuzzy detector is deferred until its local vector resource is provisioned,
+and portable results must be reported separately from paper-compatible results.
+
+Run portable paired detection with an independent negative-only calibration set:
+
+```bash
+CUDA_VISIBLE_DEVICES=1 \
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+python -m postmark.detect \
+  --input_path runs/postmark/watermarked.jsonl \
+  --output_path runs/postmark/scored-exact-lemma.jsonl \
+  --paired \
+  --negative_field text1 \
+  --positive_field text2 \
+  --calibration_path data/calibration.jsonl \
+  --calibration_text_field text \
+  --presence_mode exact_lemma
+```
+
+The default 1% FPR report is labeled diagnostic unless both calibration and
+held-out negative sets contain at least 1,000 samples. Nomic-fuzzy thresholds must
+be fixed on development/calibration data and must not be presented as compatible
+with the paper's Paragram detector.
 
 ## Development checks
 
