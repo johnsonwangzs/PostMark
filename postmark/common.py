@@ -37,6 +37,10 @@ class ResourceMismatchError(ResourceError):
     """Raised when a resource or configuration fingerprint does not match."""
 
 
+class SelectionError(PostMarkError):
+    """Raised when watermark word selection cannot satisfy its contract."""
+
+
 def canonical_json_dumps(value: Any) -> str:
     """Serialize JSON deterministically and reject non-finite numbers."""
 

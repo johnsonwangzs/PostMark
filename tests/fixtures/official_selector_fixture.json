@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "candidate_words": [
+    "alpha",
+    "bravo",
+    "charlie",
+    "delta",
+    "echo",
+    "foxtrot",
+    "golf",
+    "hotel",
+    "india"
+  ],
+  "text_embedding": [1.0, 0.0],
+  "anchor_first_components": [0.99, 0.98, 0.97, 0.96, 0.95, 0.94, 0.2, 0.1, 0.0],
+  "candidate_first_components": [0.1, 0.2, 0.99, 0.98, 0.3, 0.4, 0.01, 0.02, 0.03],
+  "k": 2,
+  "prefilter_multiplier": 3,
+  "expected_prefilter_indices": [0, 1, 2, 3, 4, 5],
+  "expected_final_indices": [2, 3],
+  "expected_words": ["charlie", "delta"]
+}

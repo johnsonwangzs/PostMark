@@ -5,10 +5,11 @@ PostMark watermark baseline. The implementation contract and acceptance criteria
 are defined in `PostMark_local_reimplementation_plan.md`.
 
 The current development stage provides deterministic configuration, JSONL,
-resource manifests, canonical candidate-word conversion, and a reproducible local
-Nomic anchor table. Watermark insertion and portable blind detection are added in
-subsequent stages; those CLI entry points intentionally fail with an actionable
-message until the selector runtime is connected.
+resource manifests, canonical candidate-word conversion, a reproducible local
+Nomic anchor table, and the official two-stage selector. Watermark insertion and
+portable blind detection are added in subsequent stages; those CLI entry points
+intentionally fail with an actionable message until their pipeline runtimes are
+connected.
 
 ## Local resources
 

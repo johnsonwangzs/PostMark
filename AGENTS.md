@@ -21,6 +21,7 @@ repository. All runtime model loads must use local files with
 - Start with the portable detector; Paragram compatibility is deferred.
 - Do not add OpenAI, Together.ai, paraphrasing, or other network dependencies.
 - Record resource and configuration fingerprints in generated manifests.
+- Prefer `CUDA_VISIBLE_DEVICES=1` for GPU validation unless unavailable or overridden.
 - Preserve unrelated existing changes and generated experiment outputs.
 - Add focused tests for resource loading, selection, detection, resume, and the
   offline JSONL pipeline; run them before considering a phase complete.
