@@ -10,6 +10,8 @@ class OfflineFoundationTests(unittest.TestCase):
 import socket
 import sys
 
+original_socket = socket.socket
+
 def blocked(*args, **kwargs):
     raise AssertionError("network access attempted during import")
 
@@ -22,6 +24,14 @@ import postmark.watermark
 
 for forbidden in ("torch", "spacy", "transformers", "openai", "together"):
     assert forbidden not in sys.modules, forbidden
+
+socket.socket = original_socket
+import torch
+socket.socket = blocked
+import postmark.build_candidate_words
+import postmark.build_nomic_anchor_pool
+import postmark.nomic_embedder
+assert "transformers" not in sys.modules
 '''
         environment = os.environ.copy()
         environment["HF_HUB_OFFLINE"] = "1"

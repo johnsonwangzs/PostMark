@@ -43,6 +43,8 @@ class LocalPathsConfig:
     embedder_tokenizer: str
     anchor_corpus: str
     candidate_words_legacy: str
+    candidate_words: str
+    nomic_table: str
     insertion_prompt: str
 
     @classmethod

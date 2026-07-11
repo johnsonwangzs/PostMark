@@ -9,6 +9,8 @@
     "embedder_tokenizer": "/data/llm/bert-base-uncased",
     "anchor_corpus": "/data/wangzhuoshang/resource/datasets/redpajama-v1-c4/c4-train.00000-of-01024.jsonl",
     "candidate_words_legacy": "valid_wtmk_words_in_wiki_base-only-f1000.pkl",
+    "candidate_words": "resources/candidate_words.json",
+    "nomic_table": "resources/postmark_nomic_table.pt",
     "insertion_prompt": "prompts/insert.txt"
   },
   "embedding": {

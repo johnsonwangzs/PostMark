@@ -51,6 +51,8 @@ class PostMarkConfigTests(unittest.TestCase):
                 (root / name).mkdir()
             for name in ("corpus.jsonl", "words.pkl", "insert.txt"):
                 (root / name).write_text("fixture", encoding="utf-8")
+            for name in ("candidate_words.json", "nomic_table.pt"):
+                (root / name).write_text("fixture", encoding="utf-8")
             value = load_json_object(CONFIG_PATH)
             value["paths"] = {
                 "inserter": "inserter",
@@ -58,6 +60,8 @@ class PostMarkConfigTests(unittest.TestCase):
                 "embedder_tokenizer": "tokenizer",
                 "anchor_corpus": "corpus.jsonl",
                 "candidate_words_legacy": "words.pkl",
+                "candidate_words": "candidate_words.json",
+                "nomic_table": "nomic_table.pt",
                 "insertion_prompt": "insert.txt",
             }
             resolved = PostMarkConfig.from_dict(value).validate_local_resources(root)

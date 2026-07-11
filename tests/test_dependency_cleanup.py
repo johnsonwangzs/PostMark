@@ -34,7 +34,12 @@ class DependencyCleanupTests(unittest.TestCase):
         self.assertLess(len(requirements.splitlines()), 20)
 
     def test_cli_help_is_local_and_has_no_removed_options(self):
-        for module in ("postmark.watermark", "postmark.detect"):
+        for module in (
+            "postmark.watermark",
+            "postmark.detect",
+            "postmark.build_candidate_words",
+            "postmark.build_nomic_anchor_pool",
+        ):
             with self.subTest(module=module):
                 result = subprocess.run(
                     [sys.executable, "-m", module, "--help"],

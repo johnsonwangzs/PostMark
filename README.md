@@ -5,10 +5,10 @@ PostMark watermark baseline. The implementation contract and acceptance criteria
 are defined in `PostMark_local_reimplementation_plan.md`.
 
 The current development stage provides deterministic configuration, JSONL,
-resource-manifest, and offline CLI foundations. Selector resource construction,
-watermark insertion, and portable blind detection are added in subsequent stages;
-the CLI entry points intentionally fail with an actionable message until their
-required local resource layer is implemented.
+resource manifests, canonical candidate-word conversion, and a reproducible local
+Nomic anchor table. Watermark insertion and portable blind detection are added in
+subsequent stages; those CLI entry points intentionally fail with an actionable
+message until the selector runtime is connected.
 
 ## Local resources
 
@@ -16,6 +16,36 @@ The default development configuration is `configs/postmark_portable.json`. It
 references the locally provisioned Llama 3.1 inserter, Nomic embedder, BERT
 tokenizer, C4 anchor corpus, and `en_core_web_sm`. Paths remain configurable and
 large resources must not be copied into this repository.
+
+The generated compatibility resources are:
+
+- `resources/candidate_words.json`: 3,266 words, preserving official repository order.
+- `resources/postmark_nomic_table.pt`: 100K C4 pool mapped to aligned `(3266, 768)`
+  anchor and candidate-word embeddings.
+- `resources/postmark_nomic_table.manifest.json`: canonical content and source
+  fingerprints. The `.pt` artifact is local-only and ignored by Git.
+
+Build them with:
+
+```bash
+python -m postmark.build_candidate_words \
+  --implementation_profile compat \
+  --legacy_pickle_path valid_wtmk_words_in_wiki_base-only-f1000.pkl \
+  --output_path resources/candidate_words.json
+
+python -m postmark.build_nomic_anchor_pool \
+  --implementation_profile compat \
+  --selection_mode official_two_stage \
+  --input_path /path/to/c4-train.00000-of-01024.jsonl \
+  --candidate_words_path resources/candidate_words.json \
+  --embedder_path /path/to/nomic-embed-text-v1 \
+  --tokenizer_path /path/to/bert-base-uncased \
+  --output_path resources/postmark_nomic_table.pt \
+  --corpus_revision redpajama-data-1T-v1.0.0-c4-00000-of-01024 \
+  --num_anchor_chunks 100000 \
+  --seed 42 \
+  --local_files_only
+```
 
 Runtime execution is offline-only:
 

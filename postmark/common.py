@@ -8,7 +8,7 @@ import os
 import random
 import shutil
 import tempfile
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -175,11 +175,11 @@ def stable_word_count(text: str) -> int:
     return len(text.split())
 
 
-def load_jsonl(
+def iter_jsonl(
     path: str | os.PathLike[str],
     *,
     limit: int | None = None,
-) -> list[dict[str, Any]]:
+) -> Iterator[dict[str, Any]]:
     if limit is not None and limit < 0:
         raise ConfigurationError("limit must be non-negative")
 
@@ -187,10 +187,10 @@ def load_jsonl(
     if not input_path.is_file():
         raise JsonlError(f"JSONL file does not exist: {input_path}")
 
-    records: list[dict[str, Any]] = []
+    yielded = 0
     with input_path.open("rb") as handle:
         for line_number, raw_line in enumerate(handle, start=1):
-            if limit is not None and len(records) >= limit:
+            if limit is not None and yielded >= limit:
                 break
             if not raw_line.strip():
                 raise JsonlError(f"Blank line at {input_path}:{line_number}")
@@ -201,8 +201,16 @@ def load_jsonl(
             value = strict_json_loads(line, source=f"{input_path}:{line_number}")
             if not isinstance(value, dict):
                 raise JsonlError(f"Record must be an object at {input_path}:{line_number}")
-            records.append(value)
-    return records
+            yield value
+            yielded += 1
+
+
+def load_jsonl(
+    path: str | os.PathLike[str],
+    *,
+    limit: int | None = None,
+) -> list[dict[str, Any]]:
+    return list(iter_jsonl(path, limit=limit))
 
 
 def index_records_by_id(

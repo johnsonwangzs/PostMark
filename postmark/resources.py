@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -13,12 +14,15 @@ from .common import (
     ResourceError,
     ResourceMismatchError,
     atomic_write_json,
+    canonical_json_bytes,
     load_json_object,
     sha256_file,
+    sha256_json,
 )
 
 
 MANIFEST_SCHEMA_VERSION = 1
+CANDIDATE_WORDS_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -108,6 +112,100 @@ class ResourceManifest:
         )
 
 
+@dataclass(frozen=True)
+class CandidateWordsResource:
+    profile: str
+    source: str
+    source_sha256: str
+    words_sha256: str
+    words: list[str]
+    version: int = CANDIDATE_WORDS_VERSION
+
+    def __post_init__(self) -> None:
+        if self.version != CANDIDATE_WORDS_VERSION:
+            raise ConfigurationError(
+                f"Unsupported candidate words version: {self.version}"
+            )
+        if self.profile not in {"compat", "portable"}:
+            raise ConfigurationError(f"Unsupported candidate words profile: {self.profile}")
+        if not self.source:
+            raise ConfigurationError("Candidate words source cannot be empty")
+        for name, digest in (
+            ("source_sha256", self.source_sha256),
+            ("words_sha256", self.words_sha256),
+        ):
+            if not isinstance(digest, str) or len(digest) != 64:
+                raise ConfigurationError(f"{name} must be a SHA-256 hex digest")
+            try:
+                int(digest, 16)
+            except ValueError as exc:
+                raise ConfigurationError(f"{name} must be hexadecimal") from exc
+        validate_candidate_words(self.words)
+        computed = sha256_json(self.words)
+        if computed != self.words_sha256:
+            raise ResourceMismatchError(
+                f"Candidate words hash mismatch: stored={self.words_sha256}, computed={computed}"
+            )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "version": self.version,
+            "profile": self.profile,
+            "source": self.source,
+            "source_sha256": self.source_sha256,
+            "words_sha256": self.words_sha256,
+            "words": self.words,
+        }
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any]) -> "CandidateWordsResource":
+        expected = {
+            "version",
+            "profile",
+            "source",
+            "source_sha256",
+            "words_sha256",
+            "words",
+        }
+        missing = expected - value.keys()
+        unknown = value.keys() - expected
+        if missing:
+            raise ConfigurationError(
+                f"Candidate words resource is missing fields: {sorted(missing)}"
+            )
+        if unknown:
+            raise ConfigurationError(
+                f"Candidate words resource has unknown fields: {sorted(unknown)}"
+            )
+        if not isinstance(value["words"], list):
+            raise ConfigurationError("Candidate words must be a list")
+        return cls(**value)
+
+
+def validate_candidate_words(words: list[str]) -> None:
+    if not words:
+        raise ConfigurationError("Candidate words cannot be empty")
+    seen: set[str] = set()
+    for index, word in enumerate(words):
+        if not isinstance(word, str) or not word:
+            raise ConfigurationError(
+                f"Candidate word at index {index} must be a non-empty string"
+            )
+        if word in seen:
+            raise ConfigurationError(f"Duplicate candidate word {word!r} at index {index}")
+        seen.add(word)
+
+
+def write_candidate_words(
+    path: str | os.PathLike[str], resource: CandidateWordsResource
+) -> None:
+    atomic_write_json(path, resource.to_dict())
+
+
+def load_candidate_words(path: str | os.PathLike[str]) -> CandidateWordsResource:
+    return CandidateWordsResource.from_dict(load_json_object(path))
+
+
 def fingerprint_path(path: str | os.PathLike[str]) -> PathFingerprint:
     """Fingerprint a file or directory without including its absolute path."""
 
@@ -144,6 +242,71 @@ def fingerprint_path(path: str | os.PathLike[str]) -> PathFingerprint:
         file_count=len(files),
         total_bytes=total_bytes,
     )
+
+
+def fingerprint_files(
+    root: str | os.PathLike[str], relative_paths: list[str]
+) -> PathFingerprint:
+    """Fingerprint an explicit file set without including its absolute path."""
+
+    resource_root = Path(root)
+    if not resource_root.is_dir():
+        raise ResourceError(f"Snapshot directory does not exist: {resource_root}")
+    normalized_paths = sorted(set(relative_paths))
+    if not normalized_paths:
+        raise ResourceError("At least one snapshot file is required")
+
+    digest = hashlib.sha256()
+    total_bytes = 0
+    for relative in normalized_paths:
+        candidate = resource_root / relative
+        if candidate.is_symlink() or not candidate.is_file():
+            raise ResourceError(f"Snapshot file does not exist or is unsafe: {candidate}")
+        size = candidate.stat().st_size
+        file_hash = sha256_file(candidate)
+        digest.update(f"{Path(relative).as_posix()}\0{size}\0{file_hash}\n".encode())
+        total_bytes += size
+    return PathFingerprint(
+        sha256=digest.hexdigest(),
+        kind="file_set",
+        file_count=len(normalized_paths),
+        total_bytes=total_bytes,
+    )
+
+
+def tensor_bundle_sha256(metadata: dict[str, Any], tensors: dict[str, Any]) -> str:
+    """Hash canonical metadata plus named dense CPU tensor bytes."""
+
+    digest = hashlib.sha256()
+    metadata_bytes = canonical_json_bytes(metadata)
+    digest.update(len(metadata_bytes).to_bytes(8, "big"))
+    digest.update(metadata_bytes)
+
+    try:
+        import torch
+    except ImportError as exc:
+        raise ResourceError("PyTorch is required to hash tensor resources") from exc
+
+    for name in sorted(tensors):
+        tensor = tensors[name]
+        if not isinstance(tensor, torch.Tensor):
+            raise ResourceError(f"Tensor bundle entry {name!r} is not a torch.Tensor")
+        if tensor.layout != torch.strided:
+            raise ResourceError(f"Tensor bundle entry {name!r} must be dense")
+        normalized = tensor.detach().cpu().contiguous()
+        header = {
+            "name": name,
+            "dtype": str(normalized.dtype),
+            "shape": list(normalized.shape),
+            "byte_order": sys.byteorder,
+        }
+        header_bytes = canonical_json_bytes(header)
+        raw_bytes = normalized.numpy().tobytes(order="C")
+        digest.update(len(header_bytes).to_bytes(8, "big"))
+        digest.update(header_bytes)
+        digest.update(len(raw_bytes).to_bytes(8, "big"))
+        digest.update(raw_bytes)
+    return digest.hexdigest()
 
 
 def write_manifest(path: str | os.PathLike[str], manifest: ResourceManifest) -> None:
