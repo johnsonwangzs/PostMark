@@ -13,10 +13,10 @@ Nomic table built from a fingerprinted local C4 shard.
 
 This is not an exact reproduction of the paper's reported numbers. The anchors
 are regenerated, the local Llama 3.1 8B inserter is not the inserter used in the
-paper's open setup, and the currently implemented detectors are portable
-`exact_lemma` and experimental `nomic_fuzzy` variants. Paragram compatibility is
-deferred until trusted local raw vectors are provisioned. Portable and Paragram
-results must never be combined in one aggregate.
+paper's open setup, and the detectors are portable `exact_lemma` and
+experimental `nomic_fuzzy` variants. Paragram is intentionally out of scope and
+will not be implemented. The primary baseline is named
+`PostMark-Local-Nomic-Fuzzy`; exact lemma is reported only as an ablation.
 
 Blind detection here means that the detector does not need `text1` or saved
 `list1/list2`. It still requires the same keyed table and selection configuration,
@@ -98,6 +98,40 @@ python -m postmark.build_nomic_anchor_pool \
 The legacy candidate-word pickle is read through a restricted unpickler and is
 converted to JSON. Runtime watermarking and detection do not load it.
 
+## Frozen 200-pair experiment data
+
+The formal local baseline uses the ELI5 Llama traces below. The response is the
+clean text, and the existing trace length is the token count used for the
+`256..512` filter. Seed `1618` fixes all split membership by stable ID hash.
+
+```bash
+python -m postmark.prepare_experiment \
+  --test_source_path /data/wangzhuoshang/experiment/post_dlm/data/llm_traces_eli5_less_repeat_run_256_512.jsonl \
+  --calibration_source_path /data/wangzhuoshang/experiment/post_dlm/data/llm_traces_eli5_less_repeat_calibration.jsonl \
+  --output_dir runs/postmark_200/data \
+  --id_field record_id \
+  --text_field response \
+  --token_trace_field trace \
+  --test_count 200 \
+  --pilot_count 30 \
+  --calibration_count 1000 \
+  --min_tokens 256 \
+  --max_tokens 512 \
+  --target_fpr 0.01 \
+  --seed 1618
+```
+
+This writes `pilot.jsonl`, `test_200.jsonl`, `calibration_1000.jsonl`, and
+`dataset_manifest.json`. The 30 pilot records may be used to freeze generation
+and Nomic-presence settings. The 200 test records and their outcomes must not be
+used for tuning. Calibration contains negatives only and freezes the decision
+threshold at 1% target FPR.
+
+With 200 held-out negative texts, empirical FPR has `0.5%` resolution. The
+pipeline therefore labels the 1% FPR result diagnostic even though the threshold
+is independently calibrated on 1,000 negatives; this experiment supports the
+fixed 200-pair comparison but not a high-precision population FPR claim.
+
 ## Watermark
 
 Formal baseline comparisons should first generate and freeze one shared `text1`
@@ -145,9 +179,9 @@ split hashes, and deterministic paired-ID percentile bootstrap confidence
 intervals. Reports are labeled diagnostic unless calibration and held-out
 negative sets each contain at least 1,000 samples.
 
-`nomic_fuzzy` is an experimental portable alternative. Its threshold must be
-fixed on development/calibration data and cannot be presented as the paper's
-Paragram detector.
+`nomic_fuzzy` is the primary portable detector. Its presence similarity setting
+must be frozen using pilot/calibration data and cannot be presented as the
+paper's original detector.
 
 ## Quality report
 
@@ -196,5 +230,5 @@ python -m postmark.quality --help
 - Nomic semantic similarity is a proxy, not an independent task-quality judge.
 - The local Nomic snapshot's custom loader currently emits PyTorch's trusted-local
   `weights_only=False` future warning. The snapshot must be treated as trusted.
-- No Paragram compatibility resource builder/runtime is included in this portable
-  milestone. Do not label portable detection as paper-compatible.
+- Paragram is not part of the project scope. Do not label portable detection as
+  an exact detector reproduction or combine its numbers with the paper's table.
