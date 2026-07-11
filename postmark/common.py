@@ -45,6 +45,64 @@ class GenerationError(PostMarkError):
     """Raised when a local model fails to generate a usable response."""
 
 
+class NetworkAccessError(OSError, PostMarkError):
+    """Raised when the acceptance network guard blocks an outbound operation."""
+
+
+def require_offline_environment() -> None:
+    """Require Hugging Face's two process-level offline controls."""
+
+    missing = [
+        name
+        for name in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")
+        if os.environ.get(name) != "1"
+    ]
+    if missing:
+        raise ConfigurationError(
+            "Offline runtime requires environment variables set to 1: "
+            + ", ".join(missing)
+        )
+
+
+def install_network_guard_from_environment() -> bool:
+    """Block socket network paths when POSTMARK_BLOCK_NETWORK=1."""
+
+    if os.environ.get("POSTMARK_BLOCK_NETWORK") != "1":
+        return False
+    import socket
+
+    if getattr(socket, "_postmark_network_guard", False):
+        return True
+    original_socket = socket.socket
+
+    def blocked(operation: str) -> None:
+        raise NetworkAccessError(
+            f"PostMark offline guard blocked network operation: {operation}"
+        )
+
+    class GuardedSocket(original_socket):
+        def connect(self, address: Any) -> None:
+            blocked(f"connect({address!r})")
+
+        def connect_ex(self, address: Any) -> int:
+            blocked(f"connect_ex({address!r})")
+
+        def sendto(self, *args: Any, **kwargs: Any) -> int:
+            blocked("sendto")
+
+    def guarded_create_connection(*args: Any, **kwargs: Any) -> None:
+        blocked("create_connection")
+
+    def guarded_getaddrinfo(*args: Any, **kwargs: Any) -> None:
+        blocked("getaddrinfo")
+
+    socket.socket = GuardedSocket
+    socket.create_connection = guarded_create_connection
+    socket.getaddrinfo = guarded_getaddrinfo
+    socket._postmark_network_guard = True
+    return True
+
+
 def canonical_json_dumps(value: Any) -> str:
     """Serialize JSON deterministically and reject non-finite numbers."""
 

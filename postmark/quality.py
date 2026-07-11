@@ -17,6 +17,8 @@ from .common import (
     atomic_write_json,
     atomic_write_jsonl,
     load_jsonl,
+    install_network_guard_from_environment,
+    require_offline_environment,
     sha256_json,
     stable_word_count,
 )
@@ -556,6 +558,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    require_offline_environment()
     if not args.local_files_only:
         raise ConfigurationError("PostMark-Local requires --local_files_only")
     records = load_jsonl(args.input_path)
@@ -564,6 +567,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.semantic_evaluator == "nomic_proxy":
         from .config import PostMarkConfig
         from .nomic_embedder import NomicTextEncoder
+
+        install_network_guard_from_environment()
 
         config_path = Path(args.config).resolve()
         project_root = config_path.parent.parent
@@ -594,6 +599,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         semantic_scores = evaluator.score_records(records)
         semantic_fingerprint = evaluator.fingerprint
+    else:
+        install_network_guard_from_environment()
 
     task_enabled = args.task_score1_field or args.task_score2_field
     task_fingerprint = None

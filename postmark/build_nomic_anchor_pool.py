@@ -21,6 +21,8 @@ from .common import (
     iter_jsonl,
     sha256_file,
     sha256_json,
+    install_network_guard_from_environment,
+    require_offline_environment,
 )
 from .nomic_embedder import NomicTextEncoder
 from .resources import (
@@ -411,6 +413,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    require_offline_environment()
+    install_network_guard_from_environment()
     candidate_resource = load_candidate_words(args.candidate_words_path)
     if candidate_resource.profile != "compat":
         raise ConfigurationError("Compat table requires a compat candidate resource")

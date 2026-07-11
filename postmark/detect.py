@@ -16,6 +16,8 @@ from .common import (
     atomic_write_json,
     atomic_write_jsonl,
     load_jsonl,
+    install_network_guard_from_environment,
+    require_offline_environment,
     sha256_json,
     stable_content_id,
 )
@@ -485,9 +487,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    require_offline_environment()
     from .nomic_embedder import NomicPostMarkEmbedder
     from .presence import ExactLemmaPresence, NomicFuzzyPresence
 
+    install_network_guard_from_environment()
     if not args.local_files_only:
         raise ConfigurationError("PostMark-Local requires --local_files_only")
     config_path = Path(args.config).resolve()

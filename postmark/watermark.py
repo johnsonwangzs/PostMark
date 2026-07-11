@@ -19,7 +19,9 @@ from .common import (
     derive_sample_seed,
     load_json_object,
     load_jsonl,
+    install_network_guard_from_environment,
     recover_truncated_jsonl_tail,
+    require_offline_environment,
     sha256_file,
     sha256_json,
     stable_content_id,
@@ -656,9 +658,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    require_offline_environment()
     from .hf_llm import LocalHFLLM
     from .nomic_embedder import NomicPostMarkEmbedder
 
+    install_network_guard_from_environment()
     if not args.local_files_only:
         raise ConfigurationError("PostMark-Local requires --local_files_only")
     config_path = Path(args.config).resolve()
