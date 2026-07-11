@@ -196,13 +196,17 @@ class PostMarkWatermarker:
 
         current_text = text
         attempts: list[dict[str, Any]] = []
+        group_diagnostics: list[dict[str, Any]] = []
         attempted_generation = 0
         usable_generation = 0
+        empty_generation_count = 0
+        generation_error_count = 0
         any_input_truncated = False
         any_output_truncated = False
         groups = [list1[start : start + self.group_size] for start in range(0, len(list1), self.group_size)]
 
         for group_index, group in enumerate(groups):
+            group_attempts_before = attempted_generation
             best_text = current_text
             best_presence = _presence(best_text, group)
             seen_prompts: set[str] = set()
@@ -244,7 +248,10 @@ class PostMarkWatermarker:
                     except (GenerationError, RuntimeError, ValueError, TypeError) as exc:
                         candidate = ""
                         diagnostic["error"] = str(exc)
+                        generation_error_count += 1
                     if not candidate:
+                        if "error" not in diagnostic:
+                            empty_generation_count += 1
                         diagnostic.update(
                             {
                                 "presence": best_presence,
@@ -284,6 +291,23 @@ class PostMarkWatermarker:
                     attempts.append(diagnostic)
                 if attempts and attempts[-1].get("group_index") == group_index:
                     attempts[-1]["group_stop_reason"] = group_stop_reason
+            group_attempts = attempted_generation - group_attempts_before
+            threshold_met = best_presence >= self.min_group_presence
+            group_diagnostics.append(
+                {
+                    "group_index": group_index,
+                    "words": group,
+                    "best_presence": best_presence,
+                    "min_group_presence": self.min_group_presence,
+                    "threshold_met": threshold_met,
+                    "num_attempts": group_attempts,
+                    "max_attempt_exhausted": (
+                        not threshold_met
+                        and group_attempts >= self.max_insert_attempts
+                    ),
+                    "stop_reason": group_stop_reason,
+                }
+            )
             current_text = best_text
 
         if attempted_generation and not usable_generation:
@@ -293,6 +317,14 @@ class PostMarkWatermarker:
                 "generation_failed",
                 "All insertion generations were empty or failed",
                 attempts=attempts,
+                groups=group_diagnostics,
+                generation_input_truncated=any_input_truncated,
+                generation_output_truncated=any_output_truncated,
+                empty_output=(
+                    attempted_generation > 0
+                    and empty_generation_count == attempted_generation
+                ),
+                generation_error_count=generation_error_count,
             )
 
         text2 = current_text
@@ -303,13 +335,24 @@ class PostMarkWatermarker:
             list2 = []
             list2_failure = str(exc)
         requested_presence = _presence(text2, list1)
+        insertion_success = bool(list1) and bool(text2.strip()) and all(
+            group["threshold_met"] for group in group_diagnostics
+        )
+        max_attempt_exhausted = any(
+            group["max_attempt_exhausted"] for group in group_diagnostics
+        )
         diagnostics = {
             "list_overlap": _jaccard(list1, list2),
             "requested_word_presence": requested_presence,
             "num_groups": len(groups),
             "num_attempts": attempted_generation,
             "attempts": attempts,
-            "insertion_failed": requested_presence < self.min_group_presence or bool(list2_failure),
+            "groups": group_diagnostics,
+            "insertion_success": insertion_success,
+            "max_attempt_exhausted": max_attempt_exhausted,
+            "empty_output": False,
+            "generation_error_count": generation_error_count,
+            "insertion_failed": not insertion_success or bool(list2_failure),
             "embedding_input_truncated": False,
             "generation_input_truncated": any_input_truncated,
             "generation_output_truncated": any_output_truncated,
@@ -335,6 +378,11 @@ class PostMarkWatermarker:
         detail: str,
         *,
         attempts: list[dict[str, Any]] | None = None,
+        groups: list[dict[str, Any]] | None = None,
+        generation_input_truncated: bool = False,
+        generation_output_truncated: bool = False,
+        empty_output: bool = False,
+        generation_error_count: int = 0,
     ) -> dict[str, Any]:
         return {
             "status": "failed",
@@ -348,10 +396,18 @@ class PostMarkWatermarker:
                 "num_groups": (len(list1) + self.group_size - 1) // self.group_size,
                 "num_attempts": len(attempts or []),
                 "attempts": attempts or [],
+                "groups": groups or [],
+                "insertion_success": False,
+                "max_attempt_exhausted": any(
+                    group.get("max_attempt_exhausted") is True
+                    for group in (groups or [])
+                ),
+                "empty_output": empty_output,
+                "generation_error_count": generation_error_count,
                 "insertion_failed": True,
                 "embedding_input_truncated": False,
-                "generation_input_truncated": False,
-                "generation_output_truncated": False,
+                "generation_input_truncated": generation_input_truncated,
+                "generation_output_truncated": generation_output_truncated,
                 "length_delta_words": 0,
                 "stop_reason": reason,
                 "failure_reason": reason,

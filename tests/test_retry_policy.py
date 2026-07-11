@@ -48,6 +48,10 @@ class RetryPolicyTests(unittest.TestCase):
         self.assertEqual(attempts[0]["stop_reason"], "retry_missing_words")
         self.assertEqual(attempts[1]["stop_reason"], "presence_threshold_met")
         self.assertNotEqual(attempts[0]["prompt_sha256"], attempts[1]["prompt_sha256"])
+        group = result["diagnostics"]["groups"][0]
+        self.assertTrue(group["threshold_met"])
+        self.assertFalse(group["max_attempt_exhausted"])
+        self.assertTrue(result["diagnostics"]["insertion_success"])
 
     def test_equal_or_worse_candidate_does_not_replace_best(self) -> None:
         watermarker, _ = self.watermarker(["original alpha", "original beta"])
@@ -58,6 +62,8 @@ class RetryPolicyTests(unittest.TestCase):
         self.assertTrue(attempts[0]["selected"])
         self.assertFalse(attempts[1]["selected"])
         self.assertEqual(attempts[1]["stop_reason"], "no_improvement")
+        self.assertTrue(result["diagnostics"]["max_attempt_exhausted"])
+        self.assertFalse(result["diagnostics"]["insertion_success"])
 
     def test_all_empty_or_error_generations_fall_back(self) -> None:
         watermarker, inserter = self.watermarker([GenerationError("offline failure")])
@@ -66,7 +72,16 @@ class RetryPolicyTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["text2"], "original")
         self.assertEqual(result["diagnostics"]["failure_reason"], "generation_failed")
+        self.assertFalse(result["diagnostics"]["empty_output"])
+        self.assertEqual(result["diagnostics"]["generation_error_count"], 1)
         self.assertEqual(len(inserter.prompts), 1)
+
+    def test_all_blank_generations_are_classified_as_empty_output(self) -> None:
+        watermarker, _ = self.watermarker(["   "])
+        result = watermarker.insert_watermark("original")
+        self.assertEqual(result["status"], "failed")
+        self.assertTrue(result["diagnostics"]["empty_output"])
+        self.assertEqual(result["diagnostics"]["generation_error_count"], 0)
 
 
 if __name__ == "__main__":

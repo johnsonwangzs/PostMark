@@ -8,8 +8,8 @@ The current development stage provides deterministic configuration and JSONL,
 resource manifests, canonical candidate-word conversion, a reproducible local
 Nomic anchor table, the official two-stage selector, and local Llama watermark
 insertion with ID-based resume. Portable blind detection, independent calibration,
-and paired bootstrap metrics are also available. Quality and failure-rate
-aggregation is the next stage.
+paired bootstrap metrics, and quality/failure aggregation with a local Nomic
+semantic proxy are also available. Multi-sample isolation acceptance is next.
 
 ## Local resources
 
@@ -97,6 +97,24 @@ The default 1% FPR report is labeled diagnostic unless both calibration and
 held-out negative sets contain at least 1,000 samples. Nomic-fuzzy thresholds must
 be fixed on development/calibration data and must not be presented as compatible
 with the paper's Paragram detector.
+
+Generate the clean-condition quality, failure, and coverage report:
+
+```bash
+CUDA_VISIBLE_DEVICES=1 \
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+python -m postmark.quality \
+  --input_path runs/postmark/watermarked.jsonl \
+  --output_path runs/postmark/quality.json \
+  --sample_output_path runs/postmark/quality-samples.jsonl \
+  --semantic_evaluator nomic_proxy
+```
+
+Rates use all eligible IDs as their denominator and retain terminal failures.
+The report includes failure classes, insertion success, attempt exhaustion, empty
+outputs, separate embedding/generation truncation rates, requested-word presence,
+list overlap, absolute/relative length changes, and Nomic-proxy similarity. Task
+metrics can be supplied as paired precomputed fields with an evaluator fingerprint.
 
 ## Development checks
 

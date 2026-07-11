@@ -37,6 +37,7 @@ class DependencyCleanupTests(unittest.TestCase):
         for module in (
             "postmark.watermark",
             "postmark.detect",
+            "postmark.quality",
             "postmark.build_candidate_words",
             "postmark.build_nomic_anchor_pool",
         ):
