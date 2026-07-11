@@ -4,12 +4,10 @@ This repository is being converted into a fully local reimplementation of the
 PostMark watermark baseline. The implementation contract and acceptance criteria
 are defined in `PostMark_local_reimplementation_plan.md`.
 
-The current development stage provides deterministic configuration, JSONL,
+The current development stage provides deterministic configuration and JSONL,
 resource manifests, canonical candidate-word conversion, a reproducible local
-Nomic anchor table, and the official two-stage selector. Watermark insertion and
-portable blind detection are added in subsequent stages; those CLI entry points
-intentionally fail with an actionable message until their pipeline runtimes are
-connected.
+Nomic anchor table, the official two-stage selector, and local Llama watermark
+insertion with ID-based resume. Portable blind detection is the next stage.
 
 ## Local resources
 
@@ -54,6 +52,22 @@ Runtime execution is offline-only:
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 ```
+
+Insert a watermark into an existing-text JSONL with the default local resources:
+
+```bash
+CUDA_VISIBLE_DEVICES=1 \
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
+python -m postmark.watermark \
+  --input_path data/input.jsonl \
+  --output_path runs/postmark/watermarked.jsonl \
+  --text_field text
+```
+
+Each output record contains `text1`, `list1`, `text2`, `list2`, insertion
+diagnostics, and resource/configuration hashes. Resume is keyed by stable sample
+ID and refuses input, model, prompt, or configuration conflicts. Use
+`--overwrite` only when intentionally starting that output path again.
 
 The first detector profile is portable `exact_lemma`. The official fuzzy detector
 is deferred until its local vector resource is provisioned, and portable results

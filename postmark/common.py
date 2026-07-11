@@ -41,6 +41,10 @@ class SelectionError(PostMarkError):
     """Raised when watermark word selection cannot satisfy its contract."""
 
 
+class GenerationError(PostMarkError):
+    """Raised when a local model fails to generate a usable response."""
+
+
 def canonical_json_dumps(value: Any) -> str:
     """Serialize JSON deterministically and reject non-finite numbers."""
 
@@ -249,6 +253,39 @@ def append_jsonl_record(path: str | os.PathLike[str], record: Mapping[str, Any])
         handle.write(payload)
         handle.flush()
         os.fsync(handle.fileno())
+
+
+def atomic_write_jsonl(
+    path: str | os.PathLike[str], records: Iterable[Mapping[str, Any]]
+) -> None:
+    """Atomically replace a JSONL file with canonical, durable records."""
+
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=output_path.parent,
+            prefix=f".{output_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary_path = Path(handle.name)
+            for record in records:
+                handle.write(canonical_json_bytes(dict(record)) + b"\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, output_path)
+        directory_fd = os.open(output_path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except (OSError, TypeError, ValueError) as exc:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise JsonlError(f"Cannot atomically write JSONL {output_path}: {exc}") from exc
 
 
 def recover_truncated_jsonl_tail(path: str | os.PathLike[str]) -> Path | None:
