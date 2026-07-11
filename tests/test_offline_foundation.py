@@ -16,7 +16,9 @@ def blocked(*args, **kwargs):
 socket.socket = blocked
 import postmark.common
 import postmark.config
+import postmark.detect
 import postmark.resources
+import postmark.watermark
 
 for forbidden in ("torch", "spacy", "transformers", "openai", "together"):
     assert forbidden not in sys.modules, forbidden
