@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from postmark.common import ConfigurationError, load_json_object
+from postmark.common import ConfigurationError, load_json_object, sha256_file
 from postmark.config import PostMarkConfig
 
 
@@ -11,6 +11,10 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = REPOSITORY_ROOT / "configs" / "postmark_portable.json"
 EXPERIMENT_CONFIG_PATH = REPOSITORY_ROOT / "configs" / "postmark_200.json"
 EXPERIMENT_PROTOCOL_PATH = REPOSITORY_ROOT / "configs" / "postmark_200_protocol.json"
+R012_G10_CONFIG_PATH = REPOSITORY_ROOT / "configs" / "postmark_200_r012_g10.json"
+R012_G10_PROTOCOL_PATH = (
+    REPOSITORY_ROOT / "configs" / "postmark_200_r012_g10_protocol.json"
+)
 
 
 class PostMarkConfigTests(unittest.TestCase):
@@ -35,10 +39,41 @@ class PostMarkConfigTests(unittest.TestCase):
         config = PostMarkConfig.load(EXPERIMENT_CONFIG_PATH)
         protocol = load_json_object(EXPERIMENT_PROTOCOL_PATH)
         self.assertEqual(protocol["postmark_config_sha256"], config.sha256)
-        self.assertEqual(protocol["formal_test_status"], "not_run")
+        self.assertEqual(protocol["formal_test_status"], "complete")
         self.assertEqual(protocol["calibration"]["negative_count"], 1000)
         self.assertEqual(protocol["calibration"]["target_fpr"], 0.01)
+        self.assertEqual(protocol["formal_results"]["pair_count"], 200)
+        self.assertEqual(protocol["formal_results"]["nomic_fuzzy"]["tpr"], 0.99)
         self.assertFalse(protocol["paragram_in_scope"])
+
+    def test_r012_g10_variant_changes_only_generation_density(self):
+        baseline = PostMarkConfig.load(EXPERIMENT_CONFIG_PATH)
+        variant = PostMarkConfig.load(R012_G10_CONFIG_PATH)
+        self.assertEqual(variant.selection.ratio, 0.12)
+        self.assertEqual(variant.insertion.group_size, 10)
+        baseline_value = load_json_object(EXPERIMENT_CONFIG_PATH)
+        variant_value = load_json_object(R012_G10_CONFIG_PATH)
+        baseline_value["selection"]["ratio"] = 0.12
+        baseline_value["insertion"]["group_size"] = 10
+        self.assertEqual(baseline_value, variant_value)
+        self.assertNotEqual(baseline.sha256, variant.sha256)
+
+    def test_r012_g10_protocol_binds_variant_and_preserved_baseline(self):
+        protocol = load_json_object(R012_G10_PROTOCOL_PATH)
+        variant = PostMarkConfig.load(R012_G10_CONFIG_PATH)
+        self.assertEqual(protocol["status"], "complete")
+        self.assertEqual(protocol["postmark_config_sha256"], variant.sha256)
+        self.assertEqual(
+            protocol["baseline_protocol_file_sha256"],
+            sha256_file(EXPERIMENT_PROTOCOL_PATH),
+        )
+        self.assertEqual(
+            protocol["calibration_policy"],
+            "recompute_threshold_for_changed_selection_config",
+        )
+        self.assertTrue(protocol["calibration"]["threshold_changed"])
+        self.assertEqual(protocol["formal_results"]["pair_count"], 200)
+        self.assertEqual(protocol["formal_results"]["nomic_fuzzy"]["tpr"], 1.0)
 
     def test_unknown_fields_are_rejected(self):
         value = load_json_object(CONFIG_PATH)

@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "experiment_name": "postmark_local_200_pairs_r012_g10",
+  "prepared_date": "2026-07-12",
+  "status": "complete",
+  "postmark_config_path": "configs/postmark_200_r012_g10.json",
+  "postmark_config_sha256": "fbe64a3d50d7a997eb9f64a74323c47bc1bb23621695c6102527f432ad42d68b",
+  "baseline_protocol_path": "configs/postmark_200_protocol.json",
+  "baseline_protocol_file_sha256": "57bc0491d67fd789259a0db990c4a27a36e106b015eb3624c5a6195103d26c73",
+  "dataset_manifest_sha256": "b10cd8ef95c62b6c20242d74047425deaf89cf0545381f2f04c8a3741f4c2ad5",
+  "test_content_sha256": "e9cdd6b142e8b3758663cb4f356e891f0216b665bf388f2f90935b020f049327",
+  "calibration_content_sha256": "a25e1b3234afa9b99cb52c9d7076f37fc3829dca91de83112ff803a7aecce817",
+  "changed_parameters": {
+    "selection.ratio": {
+      "baseline": 0.06,
+      "variant": 0.12
+    },
+    "insertion.group_size": {
+      "baseline": 20,
+      "variant": 10
+    }
+  },
+  "unchanged_contract": {
+    "seed": 1618,
+    "max_new_tokens": 768,
+    "similarity_threshold": 0.8,
+    "target_fpr": 0.01,
+    "calibration_negative_count": 1000
+  },
+  "output_root": "runs/postmark_200_r012_g10",
+  "generation_run_config_sha256": "83246c26fa10f721a796076d19cce77025c0258da522a7219b348bd9b63b87dc",
+  "selection_config_sha256": "ef5320b40b07b8413ddb8f32290ba9f99d26588a282e9b6c41587da1be2ad273",
+  "selector_resource_sha256": "ca244e03c0d107c583c9c87be4eb7d981491b498f12eeb151ccbe5e74af3ed76",
+  "calibration_policy": "recompute_threshold_for_changed_selection_config",
+  "calibration": {
+    "negative_count": 1000,
+    "target_fpr": 0.01,
+    "threshold_rule": "smallest_finite_tau_with_empirical_fpr_lte_target",
+    "decision_rule": "score_gte_tau",
+    "threshold": 0.17948717948717952,
+    "empirical_fpr": 0.009,
+    "baseline_threshold": 0.2380952380952381,
+    "threshold_changed": true
+  },
+  "formal_results": {
+    "pair_count": 200,
+    "watermarked_content_sha256": "211c628ee4b2d05301ec9e14e512a81133eb03269c8ee43215cb9f564cef2ac7",
+    "quality_config_sha256": "36beaa4d227c0d552ee808e20e2255789f296985fced4cecf98530283080ec6b",
+    "quality": {
+      "insertion_success_rate": 0.935,
+      "generation_output_truncation_rate": 0.26,
+      "mean_nomic_proxy_similarity": 0.9285203757882118,
+      "mean_relative_length_delta": 0.8223522025698933
+    },
+    "nomic_fuzzy": {
+      "detector_config_sha256": "114cc9787622bdc0fd20cd80dede9467ae674643fc3f5f658963bf795a65f14c",
+      "presence_resource_sha256": "c236c3ff050860f500ee67c621add2a15d2ad70a15221447708b8b80a25ec497",
+      "evaluation_config_sha256": "d249f4326394a162faaa1455699cdda581a7dde7d940695c3320803b3856a08d",
+      "roc_auc": 1.0,
+      "tpr": 1.0,
+      "heldout_fpr": 0.01,
+      "calibration_fpr": 0.009,
+      "mean_score1": 0.06611635219584451,
+      "mean_score2": 0.39841189403877714,
+      "mean_score_delta": 0.33229554184293264,
+      "metric_status": "diagnostic_insufficient_negatives"
+    },
+    "exact_lemma_ablation": {
+      "detector_config_sha256": "0e1cc21f726f1208c24a0e50b8cd96cc7a13946cbe2f4ca575d040c76f42f491",
+      "evaluation_config_sha256": "c6b11c8720c28ff149a4a4226884d6fd4fbd2840c67481e5a6873f1c4c318387",
+      "threshold": 0.15555555555555559,
+      "roc_auc": 1.0,
+      "tpr": 1.0,
+      "heldout_fpr": 0.015,
+      "calibration_fpr": 0.01,
+      "mean_score_delta": 0.33144019590551926,
+      "metric_status": "diagnostic_insufficient_negatives"
+    },
+    "baseline_threshold_counterfactual": {
+      "threshold": 0.2380952380952381,
+      "heldout_tpr": 0.99,
+      "heldout_fpr": 0.0
+    }
+  },
+  "baseline_comparison": {
+    "insertion_success_rate_delta": -0.009999999999999898,
+    "generation_output_truncation_rate_delta": 0.25,
+    "mean_nomic_proxy_similarity_delta": -0.030099096596241,
+    "mean_relative_length_delta_delta": 0.4864286153157255,
+    "nomic_mean_score_delta_delta": -0.07446685063630831,
+    "nomic_tpr_delta": 0.01,
+    "nomic_heldout_fpr_delta": 0.0
+  },
+  "paragram_in_scope": false
+}

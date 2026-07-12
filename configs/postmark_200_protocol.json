@@ -32,6 +32,37 @@
     "detector_fpr": 0.03333333333333333,
     "metric_status": "diagnostic_insufficient_negatives"
   },
-  "formal_test_status": "not_run",
+  "formal_results": {
+    "pair_count": 200,
+    "watermarked_content_sha256": "864d4a579591439a728eecf823cc73f8e64a41cde121d8fccbc857a46ab6b6cd",
+    "quality_config_sha256": "35bd38345791e5cd51f8a2fe9743b2eadc2324aae43692c342d3720c1e356971",
+    "quality": {
+      "insertion_success_rate": 0.945,
+      "generation_output_truncation_rate": 0.01,
+      "mean_nomic_proxy_similarity": 0.9586194723844528,
+      "mean_relative_length_delta": 0.3359235872541678
+    },
+    "nomic_fuzzy": {
+      "evaluation_config_sha256": "04fc3806a77cb3fe322056bac967229cfe2360e2223ca568b4499abe6aba232d",
+      "roc_auc": 0.9996625,
+      "tpr": 0.99,
+      "heldout_fpr": 0.01,
+      "calibration_fpr": 0.01,
+      "mean_score_delta": 0.40676239247924095,
+      "metric_status": "diagnostic_insufficient_negatives"
+    },
+    "exact_lemma_ablation": {
+      "detector_config_sha256": "d15f75ac4c1831eaac3de796dd2d58d209081c4aa137fec4b1d2dda5d45b2359",
+      "evaluation_config_sha256": "45594d3e940ed84ee2e799374a482c4fe47fa3af1850fb9028601e1bc1f351b8",
+      "threshold": 0.20000000000000004,
+      "roc_auc": 0.999725,
+      "tpr": 0.995,
+      "heldout_fpr": 0.015,
+      "calibration_fpr": 0.01,
+      "mean_score_delta": 0.4035347994669743,
+      "metric_status": "diagnostic_insufficient_negatives"
+    }
+  },
+  "formal_test_status": "complete",
   "paragram_in_scope": false
 }

@@ -23,7 +23,21 @@
 > **判定阈值冻结（2026-07-12）：** 在 detector 参数固定后，用1000条 formal
 > calibration negatives 得到目标1% FPR下 `tau=0.2380952380952381`，经验
 > calibration FPR 为 `0.01`。全部数据、配置、selector、detector 和 calibration
-> 指纹记录在 `configs/postmark_200_protocol.json`；正式200对尚未运行。
+> 指纹记录在 `configs/postmark_200_protocol.json`。
+>
+> **正式200对完成（2026-07-12）：** Nomic fuzzy 主结果为 ROC-AUC
+> `0.9996625`、TPR `0.99`、held-out FPR `0.01`；exact-lemma 消融为
+> ROC-AUC `0.999725`、TPR `0.995`、FPR `0.015`。质量侧插入成功率
+> `0.945`、输出截断率 `0.01`、Nomic proxy similarity 均值 `0.9586`。
+> 因 held-out negatives 仅200条，1% FPR结论仍按协议标记为 diagnostic。
+>
+> **ratio 0.12 / group 10 对照（2026-07-12）：** 在相同200对、seed、模型、
+> 768-token上限和 Nomic presence threshold下完成独立对照。selection contract
+> 改变后，1% FPR calibration 阈值从 `0.238095` 变为 `0.179487`，证明必须
+> 重新校准；新阈值下 Nomic ROC-AUC/TPR/FPR 为 `1.0/1.0/0.01`。但输出
+> 截断率由 `0.01` 升至 `0.26`，平均长度增幅由 `0.336` 升至 `0.822`，
+> Nomic proxy similarity 由 `0.959` 降至 `0.929`。该版本只作为高密度
+> 对照，不替代质量更稳定的 ratio 0.06 / group 20 主版本。
 
 ## 1. 改造目标
 

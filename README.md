@@ -148,8 +148,42 @@ diagnostic ROC-AUC `0.9989`, TPR `1.0`, and pilot FPR `0.0333`. These small-spli
 figures selected a detector setting and are not final reported performance.
 The subsequent 1,000-negative formal calibration freezes decision threshold
 `tau=0.2380952381` at empirical FPR `0.01`. Dataset, model, selector, detector,
-and calibration hashes are bound in `configs/postmark_200_protocol.json`; its
-formal test status remains `not_run` until the 200 pairs are generated and scored.
+and calibration hashes are bound in `configs/postmark_200_protocol.json`.
+
+The frozen 200-pair run completed with 94.5% insertion success, 1% generation
+output truncation, mean Nomic-proxy similarity `0.959`, and mean relative length
+change `+33.6%`. Primary Nomic-fuzzy detection reports ROC-AUC `0.99966`, TPR
+`0.99`, and held-out FPR `0.01` at the frozen threshold. Exact lemma is an
+ablation with ROC-AUC `0.99973`, TPR `0.995`, and FPR `0.015`. Because the held-out
+negative count is 200, both metric reports remain explicitly diagnostic for a
+population-level 1% FPR claim.
+
+The preserved baseline can be compared with an isolated ratio `0.12`, v2 group
+size `10` variant. All other settings and datasets remain fixed. Run the full
+resumable generation, quality, recalibration, Nomic detection, and exact-lemma
+ablation with:
+
+```bash
+CUDA_VISIBLE_DEVICES=1 scripts/run_postmark_200_r012_g10.sh
+```
+
+Outputs are written only under `runs/postmark_200_r012_g10/`. The script
+recomputes the 1% FPR calibration threshold because changing ratio changes the
+selection contract and score discretization, then prints the new threshold
+beside the preserved baseline threshold.
+
+The completed variant required recalibration: Nomic decision threshold changed
+from `0.238095` to `0.179487` (calibration FPR `0.009`). With the recalibrated
+threshold, Nomic detection reached ROC-AUC `1.0`, TPR `1.0`, and held-out FPR
+`0.01`. Reusing the baseline threshold would instead give held-out TPR `0.99`
+and FPR `0.0` on this sample.
+
+The higher-density variant has a substantial quality cost relative to the
+preserved ratio `0.06`/group `20` run: output truncation rises from `1%` to
+`26%`, mean relative length growth from `33.6%` to `82.2%`, and mean Nomic-proxy
+similarity falls from `0.959` to `0.929`. Its insertion success is `93.5%`
+versus `94.5%`, while its mean Nomic detection score gap is lower (`0.3323`
+versus `0.4068`).
 
 ## Watermark
 

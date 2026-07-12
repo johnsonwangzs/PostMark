@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "implementation_profile": "compat",
+  "detector_profile": "portable",
+  "selection_mode": "official_two_stage",
+  "paths": {
+    "inserter": "/data/llm/Meta-Llama-3.1-8B-Instruct",
+    "embedder": "/data/llm/nomic-embed-text-v1",
+    "embedder_tokenizer": "/data/llm/bert-base-uncased",
+    "anchor_corpus": "/data/wangzhuoshang/resource/datasets/redpajama-v1-c4/c4-train.00000-of-01024.jsonl",
+    "candidate_words_legacy": "valid_wtmk_words_in_wiki_base-only-f1000.pkl",
+    "candidate_words": "resources/candidate_words.json",
+    "nomic_table": "resources/postmark_nomic_table.pt",
+    "insertion_prompt": "prompts/insert.txt"
+  },
+  "embedding": {
+    "pooling": "mean",
+    "normalization": "l2",
+    "max_length": 512,
+    "task_prefix": "",
+    "local_files_only": true
+  },
+  "anchor": {
+    "text_field": "text",
+    "chunk_words": 250,
+    "num_anchor_chunks": 100000,
+    "chunking_algorithm": "sentbound_v1",
+    "seed": 42
+  },
+  "selection": {
+    "ratio": 0.12,
+    "prefilter_multiplier": 3,
+    "word_count_rule": "whitespace_split_floor"
+  },
+  "insertion": {
+    "iterate": "v2",
+    "group_size": 10,
+    "min_group_presence": 0.5,
+    "max_insert_attempts": 1,
+    "max_new_tokens": 768
+  },
+  "detector": {
+    "presence_mode": "nomic_fuzzy",
+    "spacy_model": "en_core_web_sm",
+    "similarity_threshold": 0.8,
+    "max_content_tokens": 128,
+    "min_token_length": 3
+  },
+  "runtime": {
+    "seed": 1618,
+    "offline": true
+  }
+}
