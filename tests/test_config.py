@@ -9,6 +9,8 @@ from postmark.config import PostMarkConfig
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = REPOSITORY_ROOT / "configs" / "postmark_portable.json"
+EXPERIMENT_CONFIG_PATH = REPOSITORY_ROOT / "configs" / "postmark_200.json"
+EXPERIMENT_PROTOCOL_PATH = REPOSITORY_ROOT / "configs" / "postmark_200_protocol.json"
 
 
 class PostMarkConfigTests(unittest.TestCase):
@@ -18,6 +20,25 @@ class PostMarkConfigTests(unittest.TestCase):
         self.assertEqual(config.detector.presence_mode, "exact_lemma")
         self.assertEqual(config.embedding.max_length, 512)
         self.assertEqual(len(config.sha256), 64)
+
+    def test_frozen_200_pair_config_loads(self):
+        config = PostMarkConfig.load(EXPERIMENT_CONFIG_PATH)
+        self.assertEqual(config.selection.ratio, 0.06)
+        self.assertEqual(config.insertion.group_size, 20)
+        self.assertEqual(config.insertion.max_new_tokens, 768)
+        self.assertEqual(config.detector.presence_mode, "nomic_fuzzy")
+        self.assertEqual(config.detector.similarity_threshold, 0.8)
+        self.assertEqual(config.detector.max_content_tokens, 128)
+        self.assertEqual(config.runtime.seed, 1618)
+
+    def test_frozen_protocol_binds_current_config(self):
+        config = PostMarkConfig.load(EXPERIMENT_CONFIG_PATH)
+        protocol = load_json_object(EXPERIMENT_PROTOCOL_PATH)
+        self.assertEqual(protocol["postmark_config_sha256"], config.sha256)
+        self.assertEqual(protocol["formal_test_status"], "not_run")
+        self.assertEqual(protocol["calibration"]["negative_count"], 1000)
+        self.assertEqual(protocol["calibration"]["target_fpr"], 0.01)
+        self.assertFalse(protocol["paragram_in_scope"])
 
     def test_unknown_fields_are_rejected(self):
         value = load_json_object(CONFIG_PATH)

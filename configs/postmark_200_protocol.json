@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "experiment_name": "postmark_local_200_pairs",
+  "frozen_date": "2026-07-12",
+  "postmark_config_path": "configs/postmark_200.json",
+  "postmark_config_sha256": "13bc663a25515ea5fc27c47e9c58a6184e4a9f8738ea762711d16674eb93fae9",
+  "dataset_manifest_sha256": "b10cd8ef95c62b6c20242d74047425deaf89cf0545381f2f04c8a3741f4c2ad5",
+  "test_content_sha256": "e9cdd6b142e8b3758663cb4f356e891f0216b665bf388f2f90935b020f049327",
+  "calibration_content_sha256": "a25e1b3234afa9b99cb52c9d7076f37fc3829dca91de83112ff803a7aecce817",
+  "detector_dev_content_sha256": "48d6f398f2155bc4a84d26465aa345506b4897221c9ff38e3343e7f8c073d380",
+  "generation_run_config_sha256": "ae2990ede24ef6c7de488543324a824be3f4bd5f5a2a4b3d95bbece4e4f40be1",
+  "selection_config_sha256": "24cea7cfb7c5cf48c7133587470fb46108a7f527bcec917597cdbc311456ac73",
+  "selector_resource_sha256": "ca244e03c0d107c583c9c87be4eb7d981491b498f12eeb151ccbe5e74af3ed76",
+  "detector_config_sha256": "55bddaed21d48c4c4916b8ec227a5f8a4aa5e91a3a96af353fbe89d664c372b1",
+  "calibration_split_sha256": "ed0c45d562f8a546f6f6b4433d39cfe6fc91a45bc18c18dcdd73984260ba5052",
+  "calibration": {
+    "negative_count": 1000,
+    "target_fpr": 0.01,
+    "threshold_rule": "smallest_finite_tau_with_empirical_fpr_lte_target",
+    "decision_rule": "score_gte_tau",
+    "threshold": 0.2380952380952381,
+    "empirical_fpr": 0.01
+  },
+  "pilot_diagnostics": {
+    "pair_count": 30,
+    "insertion_success_rate": 0.9666666666666667,
+    "generation_output_truncation_rate": 0.0,
+    "mean_nomic_proxy_similarity": 0.9491479972998301,
+    "mean_relative_length_delta": 0.2914464527498509,
+    "detector_roc_auc": 0.9988888888888889,
+    "detector_tpr": 1.0,
+    "detector_fpr": 0.03333333333333333,
+    "metric_status": "diagnostic_insufficient_negatives"
+  },
+  "formal_test_status": "not_run",
+  "paragram_in_scope": false
+}

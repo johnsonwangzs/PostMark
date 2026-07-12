@@ -180,6 +180,9 @@ class InsertionConfig:
 class DetectorConfig:
     presence_mode: str
     spacy_model: str
+    similarity_threshold: float
+    max_content_tokens: int
+    min_token_length: int
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "DetectorConfig":
@@ -190,7 +193,22 @@ class DetectorConfig:
             )
         if not _require_type(value["spacy_model"], str, "detector.spacy_model"):
             raise ConfigurationError("detector.spacy_model cannot be empty")
-        return cls(**value)
+        threshold = _require_number(
+            value["similarity_threshold"], "detector.similarity_threshold"
+        )
+        if not 0 <= threshold <= 1:
+            raise ConfigurationError("detector.similarity_threshold must be in [0, 1]")
+        for key in ("max_content_tokens", "min_token_length"):
+            number = _require_type(value[key], int, f"detector.{key}")
+            if number < 1:
+                raise ConfigurationError(f"detector.{key} must be positive")
+        return cls(
+            presence_mode=value["presence_mode"],
+            spacy_model=value["spacy_model"],
+            similarity_threshold=threshold,
+            max_content_tokens=value["max_content_tokens"],
+            min_token_length=value["min_token_length"],
+        )
 
 
 @dataclass(frozen=True)

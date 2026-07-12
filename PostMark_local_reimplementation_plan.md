@@ -8,6 +8,22 @@
 > 最终实现统一命名为 **PostMark-Local**。selector/table 的 `implementation_profile` 与 presence detector 的 `detector_profile` 独立配置：`compat` 尽量对齐论文和官方代码，`portable` 允许使用重建词表、exact-lemma、Nomic fuzzy 等本地替代组件。只要任一核心组件为 portable，整体结果就必须分开报告，不能视为论文原始 PostMark 数值。
 >
 > **范围冻结（2026-07-11）：** 原仓库缺失资源已确认无法取得，本项目不再实现或规划 Paragram。正式 baseline 固定使用 `nomic_fuzzy`，`exact_lemma` 只作为消融；后文任何 Paragram 兼容方案均视为已取消的历史设计，不属于验收范围。
+>
+> **200 对实验生成参数冻结（2026-07-12）：** 30 条 pilot 后固定使用 ratio
+> `0.06`、v2 group size `20`、minimum group presence `0.5`、每组一次尝试、
+> `max_new_tokens=768` 和 seed `1618`。配置保存于
+> `configs/postmark_200.json`；正式200条 test 不得再用于调整这些参数。
+>
+> **Detector 参数冻结（2026-07-12）：** 使用互斥的200条 detector-dev
+> negatives 和30条 pilot pairs 比较预注册的 Nomic thresholds
+> `0.70/0.75/0.80` 后，固定 `similarity_threshold=0.80`、
+> `max_content_tokens=128`、`min_token_length=3`。formal calibration 1000
+> 只用于随后确定最终判定阈值，正式test不得用于更改 detector 参数。
+>
+> **判定阈值冻结（2026-07-12）：** 在 detector 参数固定后，用1000条 formal
+> calibration negatives 得到目标1% FPR下 `tau=0.2380952380952381`，经验
+> calibration FPR 为 `0.01`。全部数据、配置、selector、detector 和 calibration
+> 指纹记录在 `configs/postmark_200_protocol.json`；正式200对尚未运行。
 
 ## 1. 改造目标
 
@@ -1107,9 +1123,11 @@ python -m postmark.build_nomic_anchor_pool \
 ### 16.4 冻结 200 对实验数据
 
 使用 `postmark.prepare_experiment` 从指定 ELI5 trace 文件稳定划分 30 条
-pilot、200 条 held-out test 和 1000 条 calibration negatives。固定 seed 为
+pilot、200 条 detector-dev negatives、200 条 held-out test 和 1000 条
+formal calibration negatives。固定 seed 为
 `1618`，长度过滤为 256--512 trace tokens，目标 FPR 为 1%；输出 manifest
-必须保存源文件、集合 ID 和内容 hash。正式 test 不参与任何调参。
+必须保存源文件、集合 ID 和内容 hash。detector-dev 用于选择 Nomic presence
+参数；formal calibration 只在参数冻结后确定判定阈值；正式 test 不参与任何调参。
 
 ### 16.5 对冻结文本嵌入水印
 
@@ -1252,7 +1270,7 @@ python -m postmark.detect \
 6. 能生成同时包含 `anchor_embeddings` 和 `candidate_word_embeddings` 的 `postmark_nomic_table.pt` 及 manifest。
 7. `compat` selector 对冻结 fixture 完成 anchor top-`3k` 加 candidate-word rerank top-`k`，结果逐词一致；anchor-only 仅作为消融。
 8. 兼容词表由仓库现有候选词 pickle 保序转换，并保存 source/words hash；portable 词表有明确标签。
-9. 能按 seed 1618 稳定冻结 30 条 pilot、200 条 test 和 1000 条 calibration，记录源文件和集合 hash，并验证三者无泄漏。
+9. 能按 seed 1618 稳定冻结 30 条 pilot、200 条 detector-dev、200 条 test 和 1000 条 formal calibration，记录源文件和集合 hash，并验证各集合无泄漏。
 10. `nomic_fuzzy` 是 portable 主 detector，exact-lemma 是消融；两者均强制标记不可视为论文 detector 的精确复现。
 11. 能对冻结的通用 JSONL 文本嵌入水印，并使用本地 HuggingFace 模型作为 inserter。
 12. detector 根据候选文本重算 expected words，不读取保存的 `list1/list2`，但严格校验 keyed table 和 selection contract。

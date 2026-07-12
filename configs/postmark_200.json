@@ -28,26 +28,26 @@
     "seed": 42
   },
   "selection": {
-    "ratio": 0.12,
+    "ratio": 0.06,
     "prefilter_multiplier": 3,
     "word_count_rule": "whitespace_split_floor"
   },
   "insertion": {
     "iterate": "v2",
-    "group_size": 10,
+    "group_size": 20,
     "min_group_presence": 0.5,
     "max_insert_attempts": 1,
-    "max_new_tokens": 600
+    "max_new_tokens": 768
   },
   "detector": {
-    "presence_mode": "exact_lemma",
+    "presence_mode": "nomic_fuzzy",
     "spacy_model": "en_core_web_sm",
-    "similarity_threshold": 0.75,
+    "similarity_threshold": 0.8,
     "max_content_tokens": 128,
     "min_token_length": 3
   },
   "runtime": {
-    "seed": 42,
+    "seed": 1618,
     "offline": true
   }
 }

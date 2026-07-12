@@ -42,6 +42,7 @@ class PrepareExperimentTests(unittest.TestCase):
             test_count=3,
             pilot_count=2,
             calibration_count=4,
+            detector_dev_count=2,
             min_tokens=2,
             max_tokens=4,
         )
@@ -60,10 +61,21 @@ class PrepareExperimentTests(unittest.TestCase):
         pilot = load_jsonl(self.root / "first" / "pilot.jsonl")
         test = load_jsonl(self.root / "first" / "test_3.jsonl")
         calibration = load_jsonl(self.root / "first" / "calibration_4.jsonl")
-        self.assertEqual((len(pilot), len(test), len(calibration)), (2, 3, 4))
+        detector_dev = load_jsonl(self.root / "first" / "detector_dev_2.jsonl")
+        self.assertEqual(
+            (len(pilot), len(test), len(calibration), len(detector_dev)),
+            (2, 3, 4, 2),
+        )
         self.assertFalse({row["id"] for row in pilot} & {row["id"] for row in test})
+        self.assertFalse(
+            {row["id"] for row in calibration}
+            & {row["id"] for row in detector_dev}
+        )
         self.assertTrue(
-            all(2 <= row["source_token_count"] <= 4 for row in pilot + test + calibration)
+            all(
+                2 <= row["source_token_count"] <= 4
+                for row in pilot + test + calibration + detector_dev
+            )
         )
         self.assertFalse(manifest["experiment"]["paragram_in_scope"])
         self.assertEqual(
@@ -84,7 +96,12 @@ class PrepareExperimentTests(unittest.TestCase):
         )
         self.prepare(second_test, second_calibration, "second")
 
-        for filename in ("pilot.jsonl", "test_3.jsonl", "calibration_4.jsonl"):
+        for filename in (
+            "pilot.jsonl",
+            "test_3.jsonl",
+            "calibration_4.jsonl",
+            "detector_dev_2.jsonl",
+        ):
             self.assertEqual(
                 (self.root / "first" / filename).read_bytes(),
                 (self.root / "second" / filename).read_bytes(),

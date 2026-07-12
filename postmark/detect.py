@@ -459,9 +459,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--presence_mode", choices=("exact_lemma", "nomic_fuzzy")
     )
     parser.add_argument("--spacy_model")
-    parser.add_argument("--similarity_threshold", type=float, default=0.75)
-    parser.add_argument("--max_content_tokens", type=int, default=128)
-    parser.add_argument("--min_token_length", type=int, default=3)
+    parser.add_argument("--similarity_threshold", type=float)
+    parser.add_argument("--max_content_tokens", type=int)
+    parser.add_argument("--min_token_length", type=int)
     parser.add_argument("--ratio", type=float)
     parser.add_argument("--min_watermark_words", type=int)
     parser.add_argument("--max_watermark_words", type=int)
@@ -511,6 +511,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         allow_config_mismatch=args.allow_config_mismatch,
     )
     presence_mode = args.presence_mode or config.detector.presence_mode
+    similarity_threshold = (
+        args.similarity_threshold
+        if args.similarity_threshold is not None
+        else config.detector.similarity_threshold
+    )
+    max_content_tokens = (
+        args.max_content_tokens
+        if args.max_content_tokens is not None
+        else config.detector.max_content_tokens
+    )
+    min_token_length = (
+        args.min_token_length
+        if args.min_token_length is not None
+        else config.detector.min_token_length
+    )
     exact_presence = ExactLemmaPresence(
         args.spacy_model or config.detector.spacy_model
     )
@@ -530,9 +545,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             exact_presence,
             selector,
             encoder_fingerprint=encoder_contract,
-            similarity_threshold=args.similarity_threshold,
-            max_content_tokens=args.max_content_tokens,
-            min_token_length=args.min_token_length,
+            similarity_threshold=similarity_threshold,
+            max_content_tokens=max_content_tokens,
+            min_token_length=min_token_length,
         )
     else:
         presence = exact_presence

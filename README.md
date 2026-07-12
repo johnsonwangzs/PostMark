@@ -115,22 +115,41 @@ python -m postmark.prepare_experiment \
   --test_count 200 \
   --pilot_count 30 \
   --calibration_count 1000 \
+  --detector_dev_count 200 \
   --min_tokens 256 \
   --max_tokens 512 \
   --target_fpr 0.01 \
   --seed 1618
 ```
 
-This writes `pilot.jsonl`, `test_200.jsonl`, `calibration_1000.jsonl`, and
-`dataset_manifest.json`. The 30 pilot records may be used to freeze generation
-and Nomic-presence settings. The 200 test records and their outcomes must not be
-used for tuning. Calibration contains negatives only and freezes the decision
-threshold at 1% target FPR.
+This writes `pilot.jsonl`, `test_200.jsonl`, `detector_dev_200.jsonl`,
+`calibration_1000.jsonl`, and `dataset_manifest.json`. The 30 pilot records and
+the disjoint detector-dev negatives may be used to freeze generation and
+Nomic-presence settings. The 200 test records and their outcomes must not be used
+for tuning. Formal calibration contains negatives only and freezes the decision
+threshold at 1% target FPR after detector settings are fixed.
 
 With 200 held-out negative texts, empirical FPR has `0.5%` resolution. The
 pipeline therefore labels the 1% FPR result diagnostic even though the threshold
 is independently calibrated on 1,000 negatives; this experiment supports the
 fixed 200-pair comparison but not a high-precision population FPR claim.
+
+The generation pilot freezes `configs/postmark_200.json`: ratio `0.06`, v2
+group size `20`, minimum group presence `0.5`, one attempt per group,
+`max_new_tokens=768`, and seed `1618`. On the 30-record pilot this configuration
+completed all records with 96.7% insertion success, 0% output truncation, mean
+Nomic-proxy similarity `0.949`, and mean relative word-length change `+29.1%`.
+These are parameter-selection diagnostics, not held-out detection results.
+
+The disjoint 200-negative detector-dev split was then used with the 30 pilot
+pairs to compare preregistered Nomic similarity thresholds `0.70`, `0.75`, and
+`0.80`. Threshold `0.80` is frozen in `configs/postmark_200.json`; it produced
+diagnostic ROC-AUC `0.9989`, TPR `1.0`, and pilot FPR `0.0333`. These small-split
+figures selected a detector setting and are not final reported performance.
+The subsequent 1,000-negative formal calibration freezes decision threshold
+`tau=0.2380952381` at empirical FPR `0.01`. Dataset, model, selector, detector,
+and calibration hashes are bound in `configs/postmark_200_protocol.json`; its
+formal test status remains `not_run` until the 200 pairs are generated and scored.
 
 ## Watermark
 

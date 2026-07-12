@@ -129,6 +129,7 @@ def prepare_experiment_splits(
     test_count: int = 200,
     pilot_count: int = 30,
     calibration_count: int = 1000,
+    detector_dev_count: int = 200,
     min_tokens: int = 256,
     max_tokens: int = 512,
     id_field: str = "record_id",
@@ -199,17 +200,30 @@ def prepare_experiment_splits(
         seed=seed,
         namespace="calibration",
     )
+    calibration_ids = {record.sample_id for record in calibration}
+    detector_dev = _select(
+        [
+            record
+            for record in eligible_calibration
+            if record.sample_id not in calibration_ids
+        ],
+        count=detector_dev_count,
+        seed=seed,
+        namespace="detector_dev",
+    )
 
     output_root = Path(output_dir).resolve()
     paths = {
         "pilot": output_root / "pilot.jsonl",
         "test": output_root / f"test_{test_count}.jsonl",
         "calibration": output_root / f"calibration_{calibration_count}.jsonl",
+        "detector_dev": output_root / f"detector_dev_{detector_dev_count}.jsonl",
     }
     for name, records in (
         ("pilot", pilot),
         ("test", test),
         ("calibration", calibration),
+        ("detector_dev", detector_dev),
     ):
         atomic_write_jsonl(paths[name], (record.output_record() for record in records))
 
@@ -218,6 +232,7 @@ def prepare_experiment_splits(
         "test_count": test_count,
         "pilot_count": pilot_count,
         "calibration_count": calibration_count,
+        "detector_dev_count": detector_dev_count,
         "min_tokens": min_tokens,
         "max_tokens": max_tokens,
         "id_field": id_field,
@@ -225,7 +240,7 @@ def prepare_experiment_splits(
         "token_trace_field": token_trace_field,
         "target_fpr": target_fpr,
         "selection_algorithm": "sha256_id_rank_v1",
-        "split_order": ["formal_test", "pilot", "calibration"],
+        "split_order": ["formal_test", "pilot", "calibration", "detector_dev"],
     }
     manifest: dict[str, Any] = {
         "schema_version": DATASET_MANIFEST_VERSION,
@@ -260,6 +275,7 @@ def prepare_experiment_splits(
             "source_id_overlap": 0,
             "source_exact_text_overlap": 0,
             "pilot_test_id_overlap": 0,
+            "detector_dev_calibration_id_overlap": 0,
         },
         "splits": {
             name: _split_manifest(paths[name], records)
@@ -267,6 +283,7 @@ def prepare_experiment_splits(
                 ("pilot", pilot),
                 ("test", test),
                 ("calibration", calibration),
+                ("detector_dev", detector_dev),
             )
         },
     }
@@ -286,6 +303,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--test_count", type=int, default=200)
     parser.add_argument("--pilot_count", type=int, default=30)
     parser.add_argument("--calibration_count", type=int, default=1000)
+    parser.add_argument("--detector_dev_count", type=int, default=200)
     parser.add_argument("--min_tokens", type=int, default=256)
     parser.add_argument("--max_tokens", type=int, default=512)
     parser.add_argument("--id_field", default="record_id")
@@ -303,7 +321,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "Prepared "
         f"pilot={splits['pilot']['count']}, "
         f"test={splits['test']['count']}, "
-        f"calibration={splits['calibration']['count']} "
+        f"calibration={splits['calibration']['count']}, "
+        f"detector_dev={splits['detector_dev']['count']} "
         f"(manifest_sha256={manifest['dataset_manifest_sha256']})"
     )
     return 0
